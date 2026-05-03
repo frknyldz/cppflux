@@ -26,10 +26,14 @@ add_executable(server
 
 target_include_directories(server PRIVATE ${LIBEVENT_INCLUDE_DIRS} src)
 target_link_libraries(server PRIVATE ${LIBEVENT_LIBRARIES} pthread glog::glog)
-target_compile_options(server PRIVATE ${LIBEVENT_CFLAGS_OTHER} -march=znver2
+option(NATIVE_ARCH "Optimize for the host CPU architecture" OFF)
+
+target_compile_options(server PRIVATE ${LIBEVENT_CFLAGS_OTHER}
+    $<$<BOOL:${NATIVE_ARCH}>:-march=native>
     $<$<CONFIG:Release>:-O3 -flto=auto>
     $<$<CONFIG:RelWithDebInfo>:-O2>
 )
-target_link_options(server PRIVATE -fuse-ld=mold
+target_link_options(server PRIVATE
+    $<$<BOOL:${NATIVE_ARCH}>:-fuse-ld=mold>
     $<$<CONFIG:Release>:-flto=auto>
 )
