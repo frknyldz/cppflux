@@ -1,5 +1,4 @@
 #include "response.hpp"
-#include "schedulers.hpp"
 #include <event2/buffer.h>
 #include <event2/keyvalq_struct.h>
 
@@ -11,12 +10,6 @@ void Response::send(int code, const std::string& body,
     auto* task = new SendTask{req_, code, body, content_type};
     timeval tv{0, 0};
     event_base_once(base_, -1, EV_TIMEOUT, SendTask::dispatch, task, &tv);
-}
-
-void Response::subscribeOn(std::function<void(Response)> work) {
-    Schedulers::boundedElastic().submit([r = *this, work = std::move(work)]() mutable {
-        work(r);
-    });
 }
 
 void Response::SendTask::dispatch(evutil_socket_t, short, void* arg) {

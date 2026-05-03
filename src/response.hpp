@@ -1,7 +1,6 @@
 #pragma once
 #include <event2/event.h>
 #include <event2/http.h>
-#include <functional>
 #include <string>
 
 class Response {
@@ -10,10 +9,6 @@ public:
 
     void send(int code, const std::string& body,
               const std::string& content_type = "text/plain");
-
-    // Like Mono.subscribeOn(Schedulers.boundedElastic()):
-    // dispatches work to the bounded elastic pool, result sent back on I/O thread.
-    void subscribeOn(std::function<void(Response)> work);
 
 private:
     struct SendTask {
