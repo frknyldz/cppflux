@@ -18,11 +18,23 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y \
             cmake ninja-build mold \
-            libevent-dev \
-            libgoogle-glog-dev libgflags-dev
+            libevent-dev
+
+      - name: Cache fetched dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: deps-${{ runner.os }}-
 
       - name: Configure (Release)
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCPPFLUX_BUILD_TESTS=ON
 
       - name: Build
         run: ninja -C build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j$(nproc)

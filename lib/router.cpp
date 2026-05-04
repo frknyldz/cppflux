@@ -1,11 +1,14 @@
-#include "router.hpp"
+#include "cppflux/router.hpp"
+
 #include <event2/buffer.h>
+#include <event2/event.h>
+#include <event2/http.h>
 #include <event2/keyvalq_struct.h>
-#include <glog/logging.h>
+
+#include "log.hpp"
 
 namespace {
 
-// Sends an HttpResult. Must be called on the I/O thread that owns req.
 void send_result(evhttp_request* req, HttpResult result) {
     evkeyvalq* hdrs = evhttp_request_get_output_headers(req);
     evhttp_add_header(hdrs, "Content-Type", result.content_type.c_str());
@@ -15,12 +18,9 @@ void send_result(evhttp_request* req, HttpResult result) {
     evhttp_send_reply(req, result.code, nullptr, buf);
     evbuffer_free(buf);
 
-    LOG(INFO) << "[io  ] async response sent  code=" << result.code
-              << " bytes=" << result.body.size();
+    CPPFLUX_LOG(Info) << "response  code=" << result.code << " bytes=" << result.body.size();
 }
 
-// Used when the pipeline's last step runs on a worker thread (pool.dispatch).
-// Routes the send back to the owning I/O thread via event_base_once.
 struct AsyncSend {
     evhttp_request* req;
     HttpResult      result;
@@ -32,7 +32,7 @@ struct AsyncSend {
     }
 };
 
-} // namespace
+}  // namespace
 
 void Router::handle(evhttp_request* req, event_base* base) const {
     Request  request(req, base);
@@ -42,27 +42,32 @@ void Router::handle(evhttp_request* req, event_base* base) const {
     const std::string path   = request.path();
 
     for (const auto& route : routes_) {
-        if (route.method != method || route.path != path) continue;
+        if (route.method != method || route.path != path) {
+            continue;
+        }
 
         if (std::holds_alternative<SyncHandler>(route.handler)) {
-            LOG(INFO) << "[io  ] " << method << " " << path << " → sync handler";
+            CPPFLUX_LOG(Info) << method << " " << path << " sync";
             std::get<SyncHandler>(route.handler)(request, response);
-
         } else {
-            LOG(INFO) << "[io  ] " << method << " " << path << " → async pipeline";
+            CPPFLUX_LOG(Info) << method << " " << path << " async";
             auto task = std::get<AsyncHandler>(route.handler)(request);
-
-            std::move(task).detach([req, base](HttpResult result) {
-                // Always route through event_base_once — safe from any thread
-                // (I/O thread or worker). Fires on the next event loop tick.
-                auto* data = new AsyncSend{req, std::move(result)};
-                timeval tv{0, 0};
-                event_base_once(base, -1, EV_TIMEOUT, AsyncSend::dispatch, data, &tv);
-            });
+            std::move(task).detach(
+                [req, base](HttpResult result) {
+                    auto*   data = new AsyncSend{req, std::move(result)};
+                    timeval tv{0, 0};
+                    event_base_once(base, -1, EV_TIMEOUT, AsyncSend::dispatch, data, &tv);
+                },
+                [req, base](const std::exception_ptr&) {
+                    CPPFLUX_LOG(Error) << "unhandled exception in async handler — sending 500";
+                    auto*   data = new AsyncSend{req, HttpResult::err(500, "Internal Server Error\n")};
+                    timeval tv{0, 0};
+                    event_base_once(base, -1, EV_TIMEOUT, AsyncSend::dispatch, data, &tv);
+                });
         }
         return;
     }
 
-    LOG(WARNING) << "[io  ] 404 " << method << " " << path;
+    CPPFLUX_LOG(Warning) << "404 " << method << " " << path;
     response.send(404, "Not Found\n");
 }

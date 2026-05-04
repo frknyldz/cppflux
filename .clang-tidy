@@ -1,0 +1,35 @@
+---
+# Run with: ninja -C build lint
+# Or manually: clang-tidy -p build src/main.cpp ...
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-default-member-init,
+  modernize-loop-convert,
+  modernize-avoid-bind,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param,
+  performance-move-const-arg,
+  readability-braces-around-statements,
+  readability-const-return-type,
+  readability-container-size-empty,
+  readability-qualified-auto,
+  -clang-diagnostic-unused-includes,
+
+# Headers under include/cppflux/ are part of the library — lint them too
+HeaderFilterRegex: 'include/cppflux/.*'
+
+WarningsAsErrors: ''
+
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelCase
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _

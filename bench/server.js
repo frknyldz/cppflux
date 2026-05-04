@@ -8,7 +8,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function dbFetch(key)          { await sleep(10); return `db_result:${key}`; }
 async function serviceCall(raw)      { await sleep(10); return `enriched:${raw}`; }
-async function formatResponse(s)     { return s + '\n'; }
+async function formatResponse(s)     { return `formatted:${s}\n`; }
 
 if (cluster.isPrimary) {
     console.log(`Node cluster :8082  workers=${WORKERS}`);

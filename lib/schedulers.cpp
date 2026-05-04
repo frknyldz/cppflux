@@ -1,4 +1,5 @@
-#include "schedulers.hpp"
+#include "cppflux/schedulers.hpp"
+
 #include <memory>
 #include <stdexcept>
 
@@ -11,9 +12,10 @@ void init(int n) {
 }
 
 ThreadPool& boundedElastic() {
-    if (!g_bounded_elastic)
+    if (!g_bounded_elastic) {
         throw std::runtime_error("Schedulers::init() not called");
+    }
     return *g_bounded_elastic;
 }
 
-} // namespace Schedulers
+}  // namespace Schedulers

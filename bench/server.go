@@ -19,7 +19,7 @@ func serviceCall(raw string) string {
 }
 
 func formatResponse(enriched string) string {
-	return enriched + "\n"
+	return "formatted:" + enriched + "\n"
 }
 
 func main() {
