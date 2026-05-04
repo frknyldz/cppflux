@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(cppflux CXX)
+project(cppflux VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,6 +31,36 @@ if(CPPFLUX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# ── Install ───────────────────────────────────────────────────────────────────
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT CppfluxTargets
+    FILE      CppfluxTargets.cmake
+    NAMESPACE cppflux::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cppflux
+)
+
+configure_package_config_file(
+    cmake/CppfluxConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cppfluxConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cppflux
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/cppfluxConfigVersion.cmake
+    VERSION       ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/cppfluxConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/cppfluxConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cppflux
+)
 
 # ── Linting ───────────────────────────────────────────────────────────────────
 file(GLOB_RECURSE ALL_SOURCES

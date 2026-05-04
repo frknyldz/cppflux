@@ -9,16 +9,26 @@ add_library(cppflux
     logger.cpp
 )
 
-# PUBLIC: any target that links cppflux automatically gets include/cppflux/*.
-# PRIVATE: libevent headers are an implementation detail — not leaked to users.
+# BUILD_INTERFACE: path used when building from source.
+# INSTALL_INTERFACE: path used by consumers after cmake --install.
 target_include_directories(cppflux
-    PUBLIC  ${CMAKE_SOURCE_DIR}/include
-    PRIVATE ${LIBEVENT_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_SOURCE_DIR}   # for io_thread.hpp and other private headers
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${LIBEVENT_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}   # for io_thread.hpp and other private headers
 )
 
 target_link_libraries(cppflux
     PUBLIC ${LIBEVENT_LIBRARIES} pthread
+)
+
+install(TARGETS cppflux
+    EXPORT      CppfluxTargets
+    ARCHIVE     DESTINATION lib
+    LIBRARY     DESTINATION lib
+    RUNTIME     DESTINATION bin
 )
 
 target_compile_options(cppflux PRIVATE
